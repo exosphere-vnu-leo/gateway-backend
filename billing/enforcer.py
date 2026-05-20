@@ -28,7 +28,10 @@ class MockGateway:
 
     async def disconnect(self, router_id: str):
         self.disconnected.add(router_id)
-        self.active_sessions.pop(router_id, None)
+        # active_sessions keyed by token → xóa tất cả session của router_id
+        to_remove = [tok for tok, rid in self.active_sessions.items() if rid == router_id]
+        for tok in to_remove:
+            self.active_sessions.pop(tok)
         log.warning("Router %s DISCONNECTED (geofence violation)", router_id)
 
     async def log_violation(self, router_id: str, info: dict):
