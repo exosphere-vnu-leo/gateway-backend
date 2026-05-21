@@ -34,7 +34,7 @@ class SpatioTemporalBillingService:
     async def run(self):
         """Chạy liên tục — tick mỗi giây."""
         while True:
-            for router_id in list(self.gateway.active_sessions.keys()):
+            for router_id in list(self.gateway.active_sessions.values()):
                 try:
                     await self._process_router(router_id)
                 except Exception as e:

@@ -74,6 +74,18 @@ class HomeRequest(BaseModel):
     radius_km: float = 0.5
 
 
+class TelemetryRequest(BaseModel):
+    session_token: str
+    sat_id: str
+    sat_lat: float
+    sat_lon: float
+    elevation: float
+    azimuth: float
+    distance_km: float
+    gps_lat: float | None = None
+    gps_lon: float | None = None
+
+
 # ---------------------------------------------------------------------------
 # Task 1 — Provisioning endpoints
 # ---------------------------------------------------------------------------
@@ -159,6 +171,34 @@ async def set_home_coords(device_id: str, req: HomeRequest):
 @app.get("/billing/violations")
 async def get_violations(limit: int = 50):
     return device_db.get_violations(limit)
+
+
+# ---------------------------------------------------------------------------
+# Task 2 — Router telemetry push
+# ---------------------------------------------------------------------------
+@app.post("/telemetry/{device_id}")
+async def push_telemetry(device_id: str, req: TelemetryRequest):
+    """Router gửi telemetry lên gateway mỗi giây."""
+    from billing import RouterTelemetry
+    import time as _time
+
+    owner = auth_service.validate_session(req.session_token)
+    if owner != device_id:
+        raise HTTPException(status_code=401, detail="invalid session")
+
+    gps = (req.gps_lat, req.gps_lon) if req.gps_lat is not None else None
+    telemetry = RouterTelemetry(
+        sat_id=req.sat_id,
+        sat_lat=req.sat_lat,
+        sat_lon=req.sat_lon,
+        elevation=req.elevation,
+        azimuth=req.azimuth,
+        distance_km=req.distance_km,
+        timestamp=_time.time(),
+        gps=gps,
+    )
+    gateway.set_telemetry(device_id, telemetry)
+    return {"ok": True}
 
 
 # ---------------------------------------------------------------------------
